@@ -1,14 +1,6 @@
-/******************************************************************************
 
-Welcome to GDB Online.
-GDB online is an online compiler and debugger tool for C, C++, Python, Java, PHP, Ruby, Perl,
-C#, OCaml, VB, Swift, Pascal, Fortran, Haskell, Objective-C, Assembly, HTML, CSS, JS, SQLite, Prolog.
-Code, Compile, Run and Debug online from anywhere in world.
-
-*******************************************************************************/
 #include <iostream>
 #include <vector>
-#include <map>
 #include <unordered_map>
 
 using namespace std;
@@ -16,35 +8,34 @@ using namespace std;
 class solution
 {
 public:
-    vector<int> tow_sum(vector<int>&arr,int n)
+    vector<int> two_sum(vector<int>&nums,int target)
     {
-        unordered_map <int,int>d;
+        unordered_map <int,int>nums_map;
         for(int i=0;;++i)
         {
-            int x = arr[i];
-            int y = n-x;
-            if(d.contains(y))
+            int complement  = target - nums[i];
+            if(nums_map.count(complement))
             {
-                return {d[y],i};
+                return {nums_map[complement],i};
             }
-            d[x]=i;
+            nums_map.insert({nums[i], i});
         }
     }
     
 };
 
-vector<int> abc={2,7,11,15};
-vector<int> output;
+vector<int> my_vector={2,7,11,15};
+vector<int> output_vector;
 
 int main()
 {
     std::cout<<"Hello World\n";
     solution ojb;
-    output=ojb.tow_sum(abc,9);
+    output_vector=ojb.two_sum(my_vector,9);
     
-    for(int i=0;i<output.size();i++)
+    for(int i=0;i<output_vector.size();i++)
     {
-        cout << output[i] << " ";
+        cout << output_vector[i] << " ";
     }
     cout << endl;
 
