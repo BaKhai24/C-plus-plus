@@ -1,7 +1,15 @@
+/*************************************************************************************************/
+/*****************************************Header Flies********************************************/
+/*************************************************************************************************/
 #include <iostream>
 #include <string>
 #include <memory>
 
+/*************************************************************************************************/
+/*******************************Mode Driving impact Energy Consumer*******************************/
+/*************************************************************************************************/
+
+/*********************************Abstract Class Mode Driving*************************************/
 class ModeEnergyConsumer {
 public:
     virtual float GetEnergyConsumptionRate() const = 0;
@@ -9,10 +17,11 @@ public:
     virtual ~ModeEnergyConsumer() {}
 };
 
+/*******************Derived Class is inherited from Abstract Class Mode Driving******************/
 class EcoMode : public ModeEnergyConsumer {
 public:
     float GetEnergyConsumptionRate() const override {
-        return 0.09; // Example consumption rate in kWh per hour
+        return 0.09; /* consumption rate in kWh per hour */
     }
 
     std::string GetNodeName() const override {
@@ -20,10 +29,11 @@ public:
     }
 };
 
+/*******************Derived Class is inherited from Abstract Class Mode Driving******************/
 class normalMode : public ModeEnergyConsumer {
 public:
     float GetEnergyConsumptionRate() const override {
-        return 0.12; // Example consumption rate in kWh per hour
+        return 0.12; /* consumption rate in kWh per hour */
     }
 
     std::string GetNodeName() const override {
@@ -31,16 +41,22 @@ public:
     }
 };
 
+/*******************Derived Class is inherited from Abstract Class Mode Driving******************/
 class sportMode : public ModeEnergyConsumer {
 public:
     float GetEnergyConsumptionRate() const override {
-        return 0.15; // Example consumption rate in kWh per hour
+        return 0.15; /* consumption rate in kWh per hour */
     }
 
     std::string GetNodeName() const override {
         return "SportMode";
     }
 };
+
+/*************************************************************************************************/
+/**************************Terrain and Temperature impact Energy Consumer*************************/
+/*************************************************************************************************/
+
 /*Scoped: The enumerators are scoped to TerrainType, so you access them like TerrainType::Grass.
 Type-safe: Unlike traditional enums, enum class doesn't implicitly convert to int, reducing bugs.
 Clearer namespace: Prevents name clashes since the enum values are not in the global scope.*/
@@ -53,7 +69,7 @@ enum class TerrainType {
 class Environment {
 private:
     TerrainType terrain;
-    float temperature; // in Celsius
+    float temperature; /*in Celsius*/
 public:
     Environment(TerrainType terrain_type, float temp) : terrain(terrain_type), temperature(temp) {}
 
@@ -62,9 +78,9 @@ public:
             case TerrainType::Flat:
                 return 1.0;
             case TerrainType::Uphill:
-                return 1.2; // Consumes more energy
+                return 1.2; /* Consumes more energy*/ 
             case TerrainType::Downhill:
-                return 0.8; // Consumes less energy
+                return 0.8; /* Consumes less energy */ 
             default:
                 return 1.0;
         }
@@ -72,11 +88,11 @@ public:
 
     float GetTemperatureFactor() const {
         if (temperature < 4) {
-            return 1.1; // Cold weather increases consumption
+            return 1.1; /* Cold weather increases consumption */
         } else if (temperature > 46) {
-            return 1.05; // Hot weather slightly increases consumption
+            return 1.05; /* Hot weather slightly increases consumption */ 
         } else {
-            return 1.0; // Optimal temperature
+            return 1.0; /* Optimal temperature */ 
         }
     }
 
@@ -110,6 +126,10 @@ public:
     }
 
 };
+
+/*************************************************************************************************/
+/**********************************Interface for Printing Table***********************************/
+/*************************************************************************************************/
 class IPrintTable {
 public:
     virtual void PrintBatteryStatus(float CurrentBattery, float BatteryPercentage, float EstimateDistance) const = 0;
@@ -119,6 +139,7 @@ public:
     virtual ~IPrintTable() {}
 };
 
+/************************Print Status Energy Management System of VF5*****************************/ 
 class StatusPrinter : public IPrintTable {
 public:
     void PrintBatteryStatus(float CurrentBattery,float BatteryPercentage, float EstimateDistance) const override {
@@ -160,10 +181,13 @@ public:
     }
 };
 
+/*************************************************************************************************/
+/*******************************Battery Management System of VF5**********************************/
+/*************************************************************************************************/
 class Battery {
 private:
-    float capacity; // in kWh
-    float currentCharge; // in kWh
+    float capacity; /* in kWh */ 
+    float currentCharge; /* in kWh */ 
 public:
     Battery(float capacity_value) : capacity(capacity_value), currentCharge(capacity_value) {}
 
@@ -185,7 +209,7 @@ public:
 
     float GetRemainingDistance(float consumptionRate) const {
         if (consumptionRate <= 0) return 0;
-        return currentCharge / consumptionRate; // in km
+        return currentCharge / consumptionRate; /* in km */ 
     }
 
     void Recharge(float amount) {
@@ -196,24 +220,27 @@ public:
     }
 
     bool IsBatteryLow() const {
-        return GetRemainingBatteryPercentage() < 20.0; // Low if below 20%
+        return GetRemainingBatteryPercentage() < 20.0; /* Low if below 20% */ 
     }
 };
 
+/*************************************************************************************************/
+/*********************************Energy Management System of VF5*********************************/
+/*************************************************************************************************/
 class VF5_EnergyManagementSystem {
 private:
     Battery VF5_Battery;
-    std::unique_ptr<ModeEnergyConsumer> VF5_CurrentMode; // Pointer to current energy consumption mode
-    std::unique_ptr<IPrintTable> VF5_Printer; // Pointer to printer
+    std::unique_ptr<ModeEnergyConsumer> VF5_CurrentMode; /* Pointer to current energy consumption mode */ 
+    std::unique_ptr<IPrintTable> VF5_Printer; /* Pointer to the printer interface */ 
     float distance =0;
 public:
     VF5_EnergyManagementSystem(float VF5_Battery_capacity, std::unique_ptr<IPrintTable> printer)
         : VF5_Battery(VF5_Battery_capacity), VF5_CurrentMode(std::make_unique<normalMode>()), VF5_Printer(std::move(printer)) {};
     
     void VF5_Drive(float SpeedKmH, float SecondsDuration, Environment env = Environment(TerrainType::Flat,25.0)) {
-        distance += (SpeedKmH / 3600) * SecondsDuration; // distance in km
+        distance += (SpeedKmH / 3600) * SecondsDuration; /* distance in km */ 
         float VF5_ConsumptionRate = VF5_CurrentMode->GetEnergyConsumptionRate();
-        float VF5_EnergyNeeded = (VF5_ConsumptionRate * distance)*env.GetOverallFactor(); // kWh needed for the distance
+        float VF5_EnergyNeeded = (VF5_ConsumptionRate * distance)*env.GetOverallFactor(); /* kWh needed for the distance */ 
         if (SpeedKmH > 80) {
             VF5_CurrentMode = std::make_unique<sportMode>();
         } else if (SpeedKmH < 30) {
@@ -234,22 +261,22 @@ public:
 
 int main() {
     auto VF5_Display = std::make_unique<StatusPrinter>();
-    VF5_EnergyManagementSystem VF5_CrimsonRed(38.4, std::move(VF5_Display)); // 38.4 kWh battery capacity
+    VF5_EnergyManagementSystem VF5_CrimsonRed(38.4, std::move(VF5_Display)); /* 38.4 kWh battery capacity */ 
     for (int i=1;i<=3;i++){
         Environment env(TerrainType::Flat,25.0);
-        VF5_CrimsonRed.VF5_Drive(25,60,env); // Drive 25 km
+        VF5_CrimsonRed.VF5_Drive(25,60,env); /* Drive 25 km */ 
         std::cout << "-----------------------------------" << std::endl;
     }
     std::cout << "------------------another speed-----------------" << std::endl;
     for (int i=1;i<=3;i++){
         Environment env(TerrainType::Uphill,48.0);
-        VF5_CrimsonRed.VF5_Drive(50,60,env); // Drive 50 km
+        VF5_CrimsonRed.VF5_Drive(50,60,env); /* Drive 50 km */ 
         std::cout << "-----------------------------------" << std::endl;
     }
     std::cout << "------------------another speed-----------------" << std::endl;
     for (int i=1;i<=3;i++){
         Environment env(TerrainType::Downhill,3.0);
-        VF5_CrimsonRed.VF5_Drive(85,300,env); // Drive 85 km
+        VF5_CrimsonRed.VF5_Drive(85,300,env); /* Drive 85 km */ 
         std::cout << "-----------------------------------" << std::endl;
     }
     return 0;
