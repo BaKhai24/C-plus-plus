@@ -1,0 +1,81 @@
+Tổng quan về Genetic Algorithm:
+    Ý tưởng chính: “Chọn lọc tự nhiên” – cá thể tốt hơn có cơ hội sinh sản và truyền gen cho thế hệ sau.
+
+    Ứng dụng: tối ưu hóa tuyến đường.
+
+⚙️ Các bước chính trong GA
+            Bước	                                          Mô tả
+    1. Khởi tạo quần thể	            Tạo ngẫu nhiên các cá thể (chromosome) – mỗi cá thể là một lời giải
+    2. Đánh giá	                        Tính fitness score – độ phù hợp của từng cá thể
+    3. Chọn lọc	                        Chọn cá thể tốt để lai ghép
+    4. Lai ghép (crossover)	            Kết hợp gen từ hai cá thể để tạo cá thể mới
+    5. Đột biến (mutation)	            Thay đổi ngẫu nhiên một phần gen để tạo đa dạng
+    6. Lặp lại	                        Tạo thế hệ mới và tiếp tục quá trình tiến hóa
+
+📌 Ví dụ đơn giản: Bài toán One-Max
+    Tìm chuỗi nhị phân có nhiều số 1 nhất.
+
+    Mỗi cá thể là chuỗi như 10110101
+
+    Fitness = số lượng 1
+
+    Qua các thế hệ, chuỗi tiến hóa để có nhiều 1 hơn
+
+🧠 Ưu điểm
+    Không cần biết rõ hàm mục tiêu
+
+    Tốt cho bài toán có nhiều cực trị (non-convex)
+
+    Dễ mở rộng và kết hợp với thuật toán khác
+
+🔥 Ứng dụng thực tế
+    Tối ưu hóa hệ thống năng lượng trong xe điện
+
+    Thiết kế mạng nơ-ron (Neuroevolution)
+
+    Tối ưu tham số mô hình học máy
+
+    Giải bài toán lập lịch, định tuyến, và thiết kế cấu trúc
+
+#############################################################################################
+##################################### English Version #######################################
+#############################################################################################
+
+Genetic Algorithm Overview
+    Main idea: “Natural selection” – better individuals have a better chance of reproducing and passing their genes to the next generation.
+
+    Applications: route optimization.
+
+⚙️ Main steps in GA
+        Step                                        Description
+    1. Population                   initialization Randomly generate individuals (chromosomes) – each individual is a solution
+    2. Evaluation                   Calculate fitness score – how fit each individual is
+    3. Selection                    Select good individuals for crossbreeding
+    4. Crossover                    Combine genes from two individuals to create new individuals
+    5. Mutation                     Randomly change a part of a gene to create diversity
+    6. Repeat                       Create a new generation and continue the evolution process
+
+📌 Simple example: One-Max Problem
+    Find the binary string with the most 1s.
+
+    Each individual is a string like 10110101
+
+    Fitness = number of 1s
+
+    Over generations, the string evolves to have more 1s
+
+🧠 Advantages
+    No need to know the objective function
+
+    Good for non-convex problems
+
+    Easy to extend and combine with other algorithms
+
+🔥 Practical applications
+    Optimizing the power system in electric vehicles
+
+    Neuroevolution design
+
+    Optimizing machine learning model parameters
+
+    Solving scheduling, routing, and structural design problems
