@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <algorithm>
 
 /*************************************************************************************************/
 /*******************************Mode Driving impact Energy Consumer*******************************/
@@ -233,30 +234,43 @@ private:
     Battery VF5_Battery;
     std::unique_ptr<ModeEnergyConsumer> VF5_CurrentMode; /* Pointer to current energy consumption mode */ 
     std::unique_ptr<IPrintTable> VF5_Printer; /* Pointer to the printer interface */ 
-    float distance =0;
+    float TotalDistance =0;
 public:
     VF5_EnergyManagementSystem(float VF5_Battery_capacity, std::unique_ptr<IPrintTable> printer)
         : VF5_Battery(VF5_Battery_capacity), VF5_CurrentMode(std::make_unique<normalMode>()), VF5_Printer(std::move(printer)) {};
     
-    void VF5_Drive(float SpeedKmH, float SecondsDuration, Environment env = Environment(TerrainType::Flat,25.0)) {
-        distance += (SpeedKmH / 3600) * SecondsDuration; /* distance in km */ 
-        float VF5_ConsumptionRate = VF5_CurrentMode->GetEnergyConsumptionRate();
-        float VF5_EnergyNeeded = (VF5_ConsumptionRate * distance)*env.GetOverallFactor(); /* kWh needed for the distance */ 
-        if (SpeedKmH > 80) {
-            VF5_CurrentMode = std::make_unique<sportMode>();
-        } else if (SpeedKmH < 30) {
+    void VF5_SwitchMode(const std::string& mode) {
+        if (mode == "EcoMode") {
             VF5_CurrentMode = std::make_unique<EcoMode>();
-        } else {
+        } else if (mode == "NormalMode") {
             VF5_CurrentMode = std::make_unique<normalMode>();
+        } else if (mode == "SportMode") {
+            VF5_CurrentMode = std::make_unique<sportMode>();
+        } else {
+            std::cout << "Invalid mode. Staying in current mode." << std::endl;
+        }
+    }
+    
+    void VF5_Drive(float SpeedKmH, float SecondsDuration, Environment env = Environment(TerrainType::Flat,25.0)) {
+        float Distance = (SpeedKmH / 3600) * SecondsDuration; /* distance in km */ 
+        TotalDistance += Distance;
+        float VF5_ConsumptionRate = VF5_CurrentMode->GetEnergyConsumptionRate();
+        float VF5_EnergyNeeded = (VF5_ConsumptionRate * Distance)*env.GetOverallFactor(); /* kWh needed for the distance */ 
+        if (VF5_EnergyNeeded > VF5_Battery.GetRemainingBattery()) {
+            std::cout << "❌ Not enough battery to drive " << Distance << " km in " << VF5_CurrentMode->GetNodeName() << " mode." << std::endl;
+            return;
         }
         VF5_Battery.ConsumedEnergy(VF5_EnergyNeeded);
         VF5_Printer->PrintEnvironent(env.GetTerrainName(), env.TerrainImpactPercent(), env.GetTemperature(), env.TemperatureImpactPercent());
-        VF5_Printer->PrintModeEnergyConsumerInfo(distance, SpeedKmH, *VF5_CurrentMode, VF5_EnergyNeeded);
+        VF5_Printer->PrintModeEnergyConsumerInfo(TotalDistance, SpeedKmH, *VF5_CurrentMode, VF5_EnergyNeeded);
         VF5_Printer->PrintBatteryStatus(VF5_Battery.GetRemainingBattery(),VF5_Battery.GetRemainingBatteryPercentage(), VF5_Battery.GetRemainingDistance(VF5_ConsumptionRate));
         if (VF5_Battery.IsBatteryLow()) {
             VF5_Printer->PrintlowBatteryWarning();
         }
+    }
 
+    float VF5_GetRemainingBattery() const {
+        return VF5_Battery.GetRemainingBattery();
     }
 };
 
@@ -276,6 +290,7 @@ private:
     int ChromosomeLength;  /* chromosome length (number of genes in each individual) */
     int PopulationLength;  /* population size (number of individuals in the population) */
     int GenerationsLength; /* number of generations to evolve */
+    float BestFitnessScore = 0.0; /* Best fitness score found */
     std::unique_ptr<ModeEnergyConsumer> CurrentMode; /* Pointer to current energy consumption mode */ 
 
 public:
@@ -289,6 +304,68 @@ public:
     each individual is a sequence of behaviors or strategies.*/
     /* "using" Increased abstraction: you work with "Chromosome" instead of "vector<Step>" */
     using Chromosome = std::vector<StepBehavior>;
+
+    /* Find the optimal driving strategy using GA */
+    Chromosome SelectionBestIndividual(Environment env, float MutationRate=0.1) {
+        /* Step 1: Initialize population with random individuals */
+        std::vector<Chromosome> Population;
+        for (int i = 0; i < PopulationLength; i++) {
+            Population.push_back(CreateRandomIndividual());
+        }
+        /* Step 2: Evolve over generations */
+        for (int Generation = 0; Generation < GenerationsLength; Generation++) {
+            /* Evaluate fitness score of each individual */
+            std::vector<std::pair<float, Chromosome>> FitnessScoresofIndividual; /* Pair of fitness score and individual */
+            for (const auto& Individual : Population) {
+                float FitnessScore = EvaluateFitnessScore(Individual, env);
+                FitnessScoresofIndividual.push_back({FitnessScore, Individual});
+            }
+            /* Sort individuals by fitness score in descending order */
+            std::sort(FitnessScoresofIndividual.begin(), FitnessScoresofIndividual.end(),
+                        [] (const auto& a, const auto& b) {
+                            return a.first > b.first; /* Sort by fitness score */ 
+                        });
+            /* Select the top 20% as parents for the next generation */
+            int NumTopParents = PopulationLength * 0.2;
+            std::vector<Chromosome> TopParents;
+            for (int i = 0; i < NumTopParents; i++) {
+                TopParents.push_back(FitnessScoresofIndividual[i].second);
+            }
+            /* Create new population */
+            std::vector<Chromosome> NewPopulation;
+            while (NewPopulation.size() < PopulationLength) {
+                /* Randomly select two parents from the top individuals */
+                int FatherIndex = rand() % NumTopParents;
+                int MotherIndex = rand() % NumTopParents;
+                const Chromosome& Father = TopParents[FatherIndex];
+                const Chromosome& Mother = TopParents[MotherIndex];
+                /* Crossover to create a child */
+                Chromosome Child = SinglePointCrossover(Father, Mother);
+                /* Mutate the child */
+                if(rand() / static_cast<float>(RAND_MAX) < MutationRate) {
+                    CreateRandomMutation(Child, MutationRate);
+                }
+                NewPopulation.push_back(Child);
+            }
+            Population = NewPopulation; /* Move to the next generation */
+        }
+
+        /* After all generations, return the best individual from the final population */
+        
+        Chromosome BestIndividual;
+        for (const auto& Individual : Population) {
+            float FitnessScore = EvaluateFitnessScore(Individual, env);
+            if (FitnessScore > BestFitnessScore) {
+                BestFitnessScore = FitnessScore;
+                BestIndividual = Individual;
+            }
+        }
+        return BestIndividual;
+    }
+
+    float GetLastBestFitnessScore() const{
+        return BestFitnessScore;
+    }
 
 private:
     /* The randomChromosome() function is used to generate a random individual in a genetic algorithm */
@@ -357,7 +434,7 @@ private:
                 break; /* Stop if battery is depleted */
             } 
         }
-        
+
         /* Additional penalty if individual uses Sport mode too much. */
         SportModeRation = static_cast<float>(SportModeCount) / static_cast<float>(IndivitualNeedEvaluate.size());
         /* 20% penalty if SportModeRation is greater than 50% */
@@ -369,6 +446,50 @@ private:
         return TotalDistance;
     }
 
+    /**** 3 common crossover types ****/
+    /* 1. Single-point crossover 
+        Choose a random crossover point.
+        Before the crossover point: take genes from the father.
+        After the crossover point: take genes from the mother.*/
+    /* 2. Two-point crossover
+        Choose two random crossover points.
+        Between the two points: get genes from the mother.
+        Outside the two points: get genes from the father.*/
+    /* 3. Uniform crossover
+        Go through each gene, randomly selecting one from each parent with a 50% probability.*/
+    Chromosome SinglePointCrossover(const Chromosome& father, const Chromosome& mother) {
+        Chromosome child;
+        /*Randomly select a cut point in the gene sequence*/
+        int CrossoverPoint = rand() % ChromosomeLength;
+        for (int i = 0; i < ChromosomeLength; i++) {
+            if (i < CrossoverPoint) {
+                child.push_back(father[i]);
+            } else {
+                child.push_back(mother[i]);
+            }
+        }
+        return child;
+    }
+
+    /* random mutation on an individual (Chromosome) in genetic algorithm */
+    void CreateRandomMutation(Chromosome& IndivitualNeedMutate, float MutationRate) {
+        for (auto& gene : IndivitualNeedMutate) {
+            /* rand() / RAND_MAX: generate random float number from 0 to 1. 
+            If the random number < mutationRate → the gene will mutate */
+            if (rand() / static_cast<float>(RAND_MAX) < MutationRate) {
+                gene.Speed = static_cast<float>(rand() % 91 + 30); /* Random speed between 30 and 120 km/h */
+                int mode = rand() % 3; /*Random 0 1 2 */
+                if (mode == 0) {
+                    gene.DrivingMode = "EcoMode";
+                } else if (mode == 1) {
+                    gene.DrivingMode = "NormalMode";
+                } else {
+                    gene.DrivingMode = "SportMode";
+                }
+            }
+        }
+    }
+
 
 
 };
@@ -376,23 +497,44 @@ private:
 
 int main() {
     auto VF5_Display = std::make_unique<StatusPrinter>();
-    VF5_EnergyManagementSystem VF5_CrimsonRed(38.4, std::move(VF5_Display)); /* 38.4 kWh battery capacity */ 
+    float InitialBatteryCapacity = 38.4; /* in kWh */
+    int CountStrategy = 0;
+    VF5_EnergyManagementSystem VF5_CrimsonRed(InitialBatteryCapacity, std::move(VF5_Display)); /* 38.4 kWh battery capacity */ 
     for (int i=1;i<=3;i++){
         Environment env(TerrainType::Flat,25.0);
+        if (i==1) {
+            VF5_CrimsonRed.VF5_SwitchMode("EcoMode");
+        } else if (i==2) {
+            VF5_CrimsonRed.VF5_SwitchMode("NormalMode");
+        } else {
+            VF5_CrimsonRed.VF5_SwitchMode("SportMode");
+        }
         VF5_CrimsonRed.VF5_Drive(25,60,env); /* Drive 25 km */ 
         std::cout << "-----------------------------------" << std::endl;
     }
-    std::cout << "------------------another speed-----------------" << std::endl;
-    for (int i=1;i<=3;i++){
-        Environment env(TerrainType::Uphill,48.0);
-        VF5_CrimsonRed.VF5_Drive(50,60,env); /* Drive 50 km */ 
-        std::cout << "-----------------------------------" << std::endl;
+    std::cout << "========================Genetic Algorithm=========================" << std::endl;
+    std::cout << "🚀 Using Genetic Algorithm to find the optimal driving strategy..." << std::endl;
+    Environment env(TerrainType::Flat,35.0);
+    while (VF5_CrimsonRed.VF5_GetRemainingBattery() > (InitialBatteryCapacity * 0.1)) { /* Stop if battery below 10% */
+        GeneticAlgorithm VF5_GA((InitialBatteryCapacity * 0.1), 20, 100, 100); /* battery limit, chromosome length, population size, generations */
+        GeneticAlgorithm::Chromosome VF5_BestStrategy = VF5_GA.SelectionBestIndividual(env, 0.1); /* mutation rate */
+        std::cout << "🎉 Optimal Driving Strategy Found:" << std::endl;
+        std::cout << "🏆 Best Fitness Score (Estimated Distance): " << VF5_GA.GetLastBestFitnessScore() << " km" << std::endl;
+        for (const auto& step : VF5_BestStrategy) {
+            std::cout << "Speed: " << step.Speed << " km/h, Mode: " << step.DrivingMode << std::endl;
+        }
+
+        /* Execute the best strategy until battery is depleted */
+        std::cout << "🚗 Executing Optimal Driving Strategy..." << std::endl;
+        for (const auto& step : VF5_BestStrategy) {
+            std::cout << "------------------New Step--------------------" << std::endl;
+            VF5_CrimsonRed.VF5_SwitchMode(step.DrivingMode);
+            VF5_CrimsonRed.VF5_Drive(step.Speed, 60, env); /* Drive for 1 minute at the given speed and mode */
+            std::cout << "------------------End Step--------------------" << std::endl;
+        }
+        CountStrategy++;
+        std::cout << "==================End Strategy " << CountStrategy << " ====================" << std::endl;
     }
-    std::cout << "------------------another speed-----------------" << std::endl;
-    for (int i=1;i<=3;i++){
-        Environment env(TerrainType::Downhill,3.0);
-        VF5_CrimsonRed.VF5_Drive(85,300,env); /* Drive 85 km */ 
-        std::cout << "-----------------------------------" << std::endl;
-    }
+    std::cout << "------------------End Genetic Algorithm--------------------" << std::endl;
     return 0;
 }
