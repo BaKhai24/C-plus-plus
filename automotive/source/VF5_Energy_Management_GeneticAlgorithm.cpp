@@ -296,8 +296,7 @@ private:
 public:
     GeneticAlgorithm(float batterylimit, int chromosomelength=20, int populationlength=100, int generationslength=100)
         : BatteryLimit(batterylimit), ChromosomeLength(chromosomelength), PopulationLength(populationlength), GenerationsLength(generationslength) {}
-    
-    
+
     /* give a new name (alias) to the std::vector<Step> data type — call it Chromosome 
     A Chromosome is a sequence of steps, i.e. a vector containing multiple steps.
     This is how you represent individuals in a genetic algorithm 
@@ -307,13 +306,14 @@ public:
 
     /* Find the optimal driving strategy using GA */
     Chromosome SelectionBestIndividual(Environment env, float MutationRate=0.1) {
-        /* Step 1: Initialize population with random individuals */
+        /*=====STEP 1: Population - initialization Randomly generate individuals (chromosomes) – each individual is a solution=====*/
         std::vector<Chromosome> Population;
         for (int i = 0; i < PopulationLength; i++) {
             Population.push_back(CreateRandomIndividual());
         }
-        /* Step 2: Evolve over generations */
+        /* Evolve over generations */
         for (int Generation = 0; Generation < GenerationsLength; Generation++) {
+            /*=====STEP 2: Evaluation - Calculate fitness score – how fit each individual is=====*/
             /* Evaluate fitness score of each individual */
             std::vector<std::pair<float, Chromosome>> FitnessScoresofIndividual; /* Pair of fitness score and individual */
             for (const auto& Individual : Population) {
@@ -325,6 +325,7 @@ public:
                         [] (const auto& a, const auto& b) {
                             return a.first > b.first; /* Sort by fitness score */ 
                         });
+            /*=====STEP 3: Selection - Select good individuals for crossbreeding=====*/
             /* Select the top 20% as parents for the next generation */
             int NumTopParents = PopulationLength * 0.2;
             std::vector<Chromosome> TopParents;
@@ -339,19 +340,21 @@ public:
                 int MotherIndex = rand() % NumTopParents;
                 const Chromosome& Father = TopParents[FatherIndex];
                 const Chromosome& Mother = TopParents[MotherIndex];
+                /*=====STEP 4: Crossover - Combine genes from two individuals to create new individuals=====*/
                 /* Crossover to create a child */
                 Chromosome Child = SinglePointCrossover(Father, Mother);
+                /*=====STEP 5: Mutation - Randomly change a part of a gene to create diversity=====*/
                 /* Mutate the child */
                 if(rand() / static_cast<float>(RAND_MAX) < MutationRate) {
                     CreateRandomMutation(Child, MutationRate);
                 }
                 NewPopulation.push_back(Child);
             }
+            /*=====STEP 6: Repeat - Create a new generation and continue the evolution process=====*/
             Population = NewPopulation; /* Move to the next generation */
         }
 
         /* After all generations, return the best individual from the final population */
-        
         Chromosome BestIndividual;
         for (const auto& Individual : Population) {
             float FitnessScore = EvaluateFitnessScore(Individual, env);
