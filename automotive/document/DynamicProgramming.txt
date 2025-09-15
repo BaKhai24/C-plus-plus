@@ -1,0 +1,30 @@
+Thuật toán quy hoạch động (dynamic programming – DP) là một kỹ thuật tối ưu hóa mạnh mẽ, 
+đặc biệt hiệu quả với các bài toán có tính chất con gối nhau và cấu trúc con tối ưu. 
+
+🧠 Nguyên lý hoạt động
+Chia bài toán lớn thành các bài toán con nhỏ hơn.
+
+Lưu trữ kết quả của các bài toán con để tránh tính toán lặp lại.
+
+Sử dụng lại kết quả đã lưu để xây dựng lời giải cho bài toán lớn.
+
+📌 Khi nào nên dùng quy hoạch động?
+Bài toán có bài toán con gối nhau (overlapping subproblems).
+
+Bài toán có cấu trúc con tối ưu (optimal substructure).
+
+🛠️ Các bước áp dụng
+1. Xác định bài toán con và mối quan hệ giữa chúng.
+
+2. Xây dựng công thức truy hồi (recurrence relation).
+
+3. Khởi tạo giá trị ban đầu (base cases).
+
+4. Tính toán theo thứ tự tăng dần hoặc giảm dần (bottom-up hoặc top-down).
+
+5. Truy vết lời giải nếu cần tìm đường đi hoặc cấu trúc lời giải.
+
+📈 Ưu điểm
+Giảm thời gian tính toán đáng kể.
+
+Giải quyết được nhiều bài toán phức tạp trong thực tế và thi đấu lập trình.
