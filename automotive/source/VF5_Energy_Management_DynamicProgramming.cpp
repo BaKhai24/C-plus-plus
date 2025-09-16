@@ -287,20 +287,79 @@ struct StepBehavior {
 
 class DynamicProgrammingAlgorithm {
 private:
-    float BatteryLimit;
+    float BatteryLimitWeight;
     int ListStepLength;
+    std::unique_ptr<ModeEnergyConsumer> CurrentMode; /* Pointer to current energy consumption mode */
 public:
     DynamicProgrammingAlgorithm(float batterylimit, int liststeplength=20)
-        : BatteryLimit(batterylimit), ListStepLength(liststeplength) {}
+        : BatteryLimitWeight(batterylimit), ListStepLength(liststeplength) {}
 
     using StepBehaviorInput = std::vector<StepBehavior>;
     using StateDistance = std::pair<float,std::vector<int>>; /*distance, list index step*/
     
     StateDistance TraceBestState(Environment env, float TimeDuration=60) {
-        /*relationship between energy consumption and state distance*/
-        std::unordered_map<float,StateDistance> RelationshipConsumptionAndState;
-        RelationshipConsumptionAndState[0.0] = {0.0, {}};
         StepBehaviorInput ListStepInput = CreateRandomListStep();
+        float TotalDistanceValue      = 0.0;
+        float DistanceofStepValue      = 0.0;
+        float ConsumptionRate    = 0.0;
+        float TotalEnergyNeededWeight = 0.0;
+        float EnergyNeededofStepWeight = 0.0;
+        int   SportModeCount     = 0;
+        float SportModeRation    = 0.0;
+        float Penalty            = 0.0;
+        Battery BatteryWeight(BatteryLimitWeight);
+        /*relationship between energy consumption and state distance*/
+        /*Component                 Role in the problem       Meaning
+        float (key)                 Weight(in kWh)            Total energy used to reach that state
+        StateDistance.first         Value(in km)              Total distance traveled in that state
+        StateDistance.second        Trace(index)              List of selected journey steps*/
+        std::unordered_map<float,StateDistance> RelationshipConsumptionAndStateDistance;
+        /* Initialize initial values ​​(base cases)*/
+        /*With 0 energy used → distance = 0, no steps selected*/
+        RelationshipConsumptionAndStateDistance[0.0] = {0.0, {}};
+        
+        for (int i=0; i<ListStepLength; i++) {
+            /* distance in km for 1 minute */
+            DistanceofStepValue = (ListStepInput[i].Speed / 3600) * TimeDuration; 
+            /* Get driving mode*/
+            if (ListStepInput[i].DrivingMode == "EcoMode") {
+                CurrentMode = std::make_unique<EcoMode>();
+            } else if (ListStepInput[i].DrivingMode == "NormalMode") {
+                CurrentMode = std::make_unique<normalMode>();
+            } else {
+                CurrentMode = std::make_unique<sportMode>();
+                SportModeCount++;
+            }
+            /* Get comsunption rate */
+            ConsumptionRate = CurrentMode->GetEnergyConsumptionRate();
+            /* kWh needed for the distance */
+            EnergyNeededofStepWeight = (ConsumptionRate * DistanceofStepValue) * env.GetOverallFactor();
+            std::unordered_map<float,StateDistance>NextTraceConsumptionAndStateDistance = RelationshipConsumptionAndStateDistance;
+            /* Variable                             Meaning                             What is it used for
+               EnergyNeededofStepWeight             Energy of the current step          Calculation
+               EnergyUsedWeight                     Previously used energy              Current state
+               TotalEnergyNeededWeight              Total energy after adding step      New state to consider and save*/
+            /* Variable                      Role
+               EnergyUsedWeight              Total energy used in current state
+               StateDistanceValue.first      Total distance traveled
+               StateDistanceValue.second     List of selected steps*/
+            for (const auto& [EnergyUsedWeight, StateDistanceValue] : RelationshipConsumptionAndStateDistance) {
+                /*TotalEnergyNeededWeight: total energy used after adding a new travel step*/
+                TotalEnergyNeededWeight = EnergyUsedWeight + EnergyNeededofStepWeight;
+                if(TotalEnergyNeededWeight <= BatteryLimitWeight) {
+                    /*TotalDistanceValue: total distance traveled if that step is added*/
+                    TotalDistanceValue = StateDistanceValue.first + DistanceofStepValue;
+                    if (NextTraceConsumptionAndStateDistance.find(TotalEnergyNeededWeight) == NextTraceConsumptionAndStateDistance.end() || 
+                        NextTraceConsumptionAndStateDistance[TotalEnergyNeededWeight].first < TotalDistanceValue) {
+                        std::vector<int> NewTraceStepSelected = StateDistanceValue.second;
+                        NewTraceStepSelected.push_back(i); /* Add the index of the new step to the trace*/
+                        NextTraceConsumptionAndStateDistance[TotalEnergyNeededWeight] = {TotalDistanceValue, NewTraceStepSelected};
+                    }
+                }
+            }
+            RelationshipConsumptionAndStateDistance = std::move(NextTraceConsumptionAndStateDistance);
+        }
+
         
 
     }

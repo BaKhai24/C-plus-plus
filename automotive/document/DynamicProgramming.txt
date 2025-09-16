@@ -2,29 +2,142 @@ Thuật toán quy hoạch động (dynamic programming – DP) là một kỹ th
 đặc biệt hiệu quả với các bài toán có tính chất con gối nhau và cấu trúc con tối ưu. 
 
 🧠 Nguyên lý hoạt động
-Chia bài toán lớn thành các bài toán con nhỏ hơn.
-
-Lưu trữ kết quả của các bài toán con để tránh tính toán lặp lại.
-
-Sử dụng lại kết quả đã lưu để xây dựng lời giải cho bài toán lớn.
+    Chia bài toán lớn thành các bài toán con nhỏ hơn.
+    Lưu trữ kết quả của các bài toán con để tránh tính toán lặp lại.
+    Sử dụng lại kết quả đã lưu để xây dựng lời giải cho bài toán lớn.
 
 📌 Khi nào nên dùng quy hoạch động?
-Bài toán có bài toán con gối nhau (overlapping subproblems).
-
-Bài toán có cấu trúc con tối ưu (optimal substructure).
+    Bài toán có bài toán con gối nhau (overlapping subproblems).
+    Bài toán có cấu trúc con tối ưu (optimal substructure).
 
 🛠️ Các bước áp dụng
-1. Xác định bài toán con và mối quan hệ giữa chúng.
-
-2. Xây dựng công thức truy hồi (recurrence relation).
-
-3. Khởi tạo giá trị ban đầu (base cases).
-
-4. Tính toán theo thứ tự tăng dần hoặc giảm dần (bottom-up hoặc top-down).
-
-5. Truy vết lời giải nếu cần tìm đường đi hoặc cấu trúc lời giải.
+    1. Xác định bài toán con và mối quan hệ giữa chúng.
+    2. Xây dựng công thức truy hồi (recurrence relation).
+    3. Khởi tạo giá trị ban đầu (base cases).
+    4. Tính toán theo thứ tự tăng dần hoặc giảm dần (bottom-up hoặc top-down).
+    5. Truy vết lời giải nếu cần tìm đường đi hoặc cấu trúc lời giải.
 
 📈 Ưu điểm
-Giảm thời gian tính toán đáng kể.
+    Giảm thời gian tính toán đáng kể.
+    Giải quyết được nhiều bài toán phức tạp trong thực tế và thi đấu lập trình.
 
-Giải quyết được nhiều bài toán phức tạp trong thực tế và thi đấu lập trình.
+===============================================================================================
+Bài toán ba lô (Knapsack Problem) trong quy hoạch động:
+
+🧩 1. Xác định bài toán con (Subproblems):
+Mục tiêu: Chia bài toán lớn thành các bài toán nhỏ hơn có thể giải độc lập.
+Phân tích:
+    Mỗi bước hành trình có: value, weight
+    Trong bài toán ba lô, mỗi vật phẩm (hay mỗi bước hành trình) được gán:
+        value – giá trị mang lại (lợi ích, kinh nghiệm, thành tựu…)
+        weight – chi phí phải trả (thời gian, công sức, rủi ro…)
+
+🧠 2. Xây dựng công thức truy hồi (Recurrence Relation):
+Mục tiêu: Tìm mối quan hệ giữa bài toán lớn và các bài toán con.
+Phân tích:
+    Giả sử bạn có một ba lô với sức chứa W, và một danh sách các bước hành trình (hoặc vật phẩm) với:
+        value[i]: giá trị của bước thứ i
+        weight[i]: chi phí của bước thứ i
+    Xây dựng bảng dp[i][w] – giá trị tối đa đạt được khi xét đến bước thứ i với tổng chi phí không vượt quá w.
+    Công thức truy hồi:
+        dp[i][w] = max(dp[i-1][w], dp[i-1][w - weight[i]] + value[i])
+    Không chọn bước i: giữ nguyên giá trị dp[i-1][w]
+    Chọn bước i: cộng thêm value[i] nếu còn đủ sức chứa
+
+🧱 3. Khởi tạo giá trị ban đầu (Base Cases):
+Mục tiêu: Gán giá trị cho các trạng thái đơn giản nhất.
+Phân tích:
+    dp[0][w] = 0   # chưa có bước nào thì giá trị là 0
+    dp[i][0] = 0.0 # Với 0 năng lượng, không đi được đâu
+
+🔁 4. Duyệt theo thứ tự hợp lý (Bottom-Up hoặc Top-Down):
+Mục tiêu:
+    Bottom-Up: Duyệt từ nhỏ đến lớn, thường dùng mảng 2 chiều hoặc 1 chiều.
+    Top-Down (Memoization): Dùng đệ quy kết hợp lưu kết quả để tránh lặp lại.
+Phân tích:
+    Bottom-Up thường nhanh hơn và dễ kiểm soát bộ nhớ.
+    Top-Down dễ viết hơn nhưng có thể tốn stack nếu không tối ưu.
+
+🔍 5. Truy vết lời giải (Backtracking – nếu cần):
+Mục tiêu: Tìm lại đường đi hoặc cấu trúc lời giải.
+Phân tích:
+    Dựa vào bảng dp đã tính để truy ngược lại.
+    Sau khi tính xong bảng dp, ta có thể truy ngược lại để biết mình đã chọn những bước nào 
+    — tức là những hành trình nào mang lại giá trị cao nhất mà vẫn nằm trong giới hạn chi phí.
+
+💡 Ẩn dụ 
+    Mỗi bước hành trình đều mang theo một giá trị và một trọng lượng.
+    Giá trị là những gì ta học được, đạt được. 
+    Trọng lượng là những gì ta phải đánh đổi, chịu đựng. 
+    Hành trình tối ưu không phải là đi nhiều nhất, mà là chọn đúng bước để đi.
+
+ =============================================================================================
+
+🧩 1. Xác định bài toán con và mối quan hệ giữa chúng (Subproblems):
+    Bài toán gốc: Chọn tập con các bước hành trình sao cho tổng năng lượng tiêu thụ không vượt quá batteryLimit, 
+    và tổng quãng đường đi được là lớn nhất.
+
+    Bài toán con: Với một mức năng lượng đã dùng (usedEnergy), ta lưu trạng thái tốt nhất gồm:
+        Tổng quãng đường đi được
+        Danh sách các bước đã chọn
+
+    Mối quan hệ: Mỗi bước hành trình có thể:
+        Được thêm vào một trạng thái hiện có → tạo trạng thái mới với năng lượng tăng và quãng đường tăng
+        Bị bỏ qua → giữ nguyên trạng thái cũ
+
+🧠 2. Xây dựng công thức truy hồi (recurrence relation)
+    Không dùng mảng dp[i][w] như kiểu truyền thống, mà dùng unordered_map<double, State> với:
+
+    dp[newEnergy] = max(dp[newEnergy], dp[usedEnergy] + distance_i)
+    Trong đó:
+        newEnergy = usedEnergy + energy_i
+        distance_i = computeDistance(step[i])
+        State = pair<distance, path> → lưu cả quãng đường và danh sách bước
+
+🧱 3. Khởi tạo giá trị ban đầu (base cases)
+    Với 0 năng lượng đã dùng → quãng đường = 0, chưa chọn bước nào:
+        dp[0.0] = {0.0, {}};
+    Đây là điểm xuất phát của hành trình: chưa đi đâu, chưa tiêu tốn gì.
+
+🔁 4. Tính toán theo thứ tự tăng dần (bottom-up)
+    Duyệt từng bước hành trình:
+        Với mỗi trạng thái hiện tại (usedEnergy), ta thử thêm bước i
+        Nếu năng lượng mới không vượt quá giới hạn → cập nhật trạng thái mới
+        Dùng nextDP để tránh ghi đè trong quá trình duyệt
+
+    for (size_t i = 0; i < steps.size(); ++i) {
+        ...
+        for (const auto& [usedEnergy, state] : dp) {
+            double newEnergy = usedEnergy + energy;
+            if (newEnergy <= batteryLimit) {
+                ...
+                nextDP[newEnergy] = {newDistance, newPath};
+            }
+        }
+        dp = std::move(nextDP);
+    }
+    
+🔍 5. Truy vết lời giải (Backtracking):
+    Truy vết được thực hiện trực tiếp trong quá trình xây dựng trạng thái:
+
+    std::vector<int> newPath = state.second;
+    newPath.push_back(i);
+    nextDP[newEnergy] = {newDistance, newPath};
+
+    Mỗi trạng thái lưu luôn danh sách các bước đã chọn
+    Cuối cùng, ta duyệt qua tất cả trạng thái để tìm quãng đường lớn nhất:
+
+    State best = {0.0, {}};
+    for (const auto& [energy, state] : dp) {
+        if (state.first > best.first)
+            best = state;
+    }
+    → Trả về best: gồm quãng đường tối ưu và danh sách các bước hành trình tương ứng.
+
+✅ Tổng kết
+    Bước	            Nội dung
+1️⃣ Bài toán con	Trạng thái tại mỗi mức năng lượng đã dùng
+2️⃣ Truy hồi	    Từ trạng thái cũ → thêm bước mới nếu có lợi
+3️⃣ Khởi tạo	    dp[0.0] = {0.0, {}}
+4️⃣ Tính toán	    Bottom-up, duyệt từng bước và từng trạng thái
+5️⃣ Truy vết	    Lưu đường đi trong mỗi trạng thái, chọn tốt nhất cuối cùng
