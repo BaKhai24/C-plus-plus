@@ -309,16 +309,17 @@ public:
         float SportModeRation    = 0.0;
         float Penalty            = 0.0;
         Battery BatteryWeight(BatteryLimitWeight);
+        /*STEP 1: Identify subproblems and their relationships:*/
         /*relationship between energy consumption and state distance*/
         /*Component                 Role in the problem       Meaning
         float (key)                 Weight(in kWh)            Total energy used to reach that state
         StateDistance.first         Value(in km)              Total distance traveled in that state
         StateDistance.second        Trace(index)              List of selected journey steps*/
         std::unordered_map<float,StateDistance> RelationshipConsumptionAndStateDistance;
-        /* Initialize initial values ​​(base cases)*/
+        /*STEP 2: Initialize initial values ​​(base cases)*/
         /*With 0 energy used → distance = 0, no steps selected*/
         RelationshipConsumptionAndStateDistance[0.0] = {0.0, {}};
-        
+
         for (int i=0; i<ListStepLength; i++) {
             /* distance in km for 1 minute */
             DistanceofStepValue = (ListStepInput[i].Speed / 3600) * TimeDuration; 
@@ -351,7 +352,9 @@ public:
                EnergyUsedWeight              Total energy used in current state
                StateDistanceValue.first      Total distance traveled
                StateDistanceValue.second     List of selected steps*/
+            /*STEP 3: Building a recurrence relation*/
             for (const auto& [EnergyUsedWeight, StateDistanceValue] : RelationshipConsumptionAndStateDistance) {
+                /*STEP 4: Calculate in ascending order (bottom-up)*/
                 /*TotalEnergyNeededWeight: total energy used after adding a new travel step*/
                 TotalEnergyNeededWeight = EnergyUsedWeight + EnergyNeededofStepWeight;
                 if(TotalEnergyNeededWeight <= BatteryLimitWeight) {
@@ -359,6 +362,7 @@ public:
                     TotalDistanceValue = StateDistanceValue.first + DistanceofStepValue - Penalty;
                     if (NextTraceConsumptionAndStateDistance.find(TotalEnergyNeededWeight) == NextTraceConsumptionAndStateDistance.end() || 
                         NextTraceConsumptionAndStateDistance[TotalEnergyNeededWeight].first < TotalDistanceValue) {
+                        /*STEP 5: Tracing the solution*/
                         std::vector<int> NewTraceStepSelected = StateDistanceValue.second;
                         NewTraceStepSelected.push_back(i); /* Add the index of the new step to the trace*/
                         NextTraceConsumptionAndStateDistance[TotalEnergyNeededWeight] = {TotalDistanceValue, NewTraceStepSelected};
@@ -402,8 +406,6 @@ public:
         return ListStepInput;
     }
 };
-    
-
 
 int main() {
     auto VF5_Display = std::make_unique<StatusPrinter>();
