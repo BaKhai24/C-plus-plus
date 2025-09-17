@@ -286,19 +286,20 @@ struct StepBehavior {
 };
 
 class DynamicProgrammingAlgorithm {
+public:
+    using StepBehaviorInput = std::vector<StepBehavior>;
+    using StateDistance = std::pair<float,std::vector<int>>; /*distance, list index step*/
 private:
     float BatteryLimitWeight;
     int ListStepLength;
+    StepBehaviorInput ListStepInput;
     std::unique_ptr<ModeEnergyConsumer> CurrentMode; /* Pointer to current energy consumption mode */
 public:
     DynamicProgrammingAlgorithm(float batterylimit, int liststeplength=20)
         : BatteryLimitWeight(batterylimit), ListStepLength(liststeplength) {}
-
-    using StepBehaviorInput = std::vector<StepBehavior>;
-    using StateDistance = std::pair<float,std::vector<int>>; /*distance, list index step*/
     
     StateDistance TraceBestState(Environment env, float TimeDuration=60) {
-        StepBehaviorInput ListStepInput = CreateRandomListStep();
+        ListStepInput = CreateRandomListStep();
         float TotalDistanceValue      = 0.0;
         float DistanceofStepValue      = 0.0;
         float ConsumptionRate    = 0.0;
@@ -334,6 +335,13 @@ public:
             ConsumptionRate = CurrentMode->GetEnergyConsumptionRate();
             /* kWh needed for the distance */
             EnergyNeededofStepWeight = (ConsumptionRate * DistanceofStepValue) * env.GetOverallFactor();
+            SportModeRation = static_cast<float>(SportModeCount) / static_cast<float>(ListStepLength);
+            if (SportModeRation > 0.5) {
+                Penalty = DistanceofStepValue * 0.2; /* Penalty for overusing Sport mode */
+            } else {
+                Penalty = 0.0;
+            }
+            /* Create a new map to store updated states after considering the new step */
             std::unordered_map<float,StateDistance>NextTraceConsumptionAndStateDistance = RelationshipConsumptionAndStateDistance;
             /* Variable                             Meaning                             What is it used for
                EnergyNeededofStepWeight             Energy of the current step          Calculation
@@ -348,7 +356,7 @@ public:
                 TotalEnergyNeededWeight = EnergyUsedWeight + EnergyNeededofStepWeight;
                 if(TotalEnergyNeededWeight <= BatteryLimitWeight) {
                     /*TotalDistanceValue: total distance traveled if that step is added*/
-                    TotalDistanceValue = StateDistanceValue.first + DistanceofStepValue;
+                    TotalDistanceValue = StateDistanceValue.first + DistanceofStepValue - Penalty;
                     if (NextTraceConsumptionAndStateDistance.find(TotalEnergyNeededWeight) == NextTraceConsumptionAndStateDistance.end() || 
                         NextTraceConsumptionAndStateDistance[TotalEnergyNeededWeight].first < TotalDistanceValue) {
                         std::vector<int> NewTraceStepSelected = StateDistanceValue.second;
@@ -359,14 +367,20 @@ public:
             }
             RelationshipConsumptionAndStateDistance = std::move(NextTraceConsumptionAndStateDistance);
         }
-
-        
+        /*Find the state with the largest distance*/
+        StateDistance BestState = {0.0, {}};
+        for (const auto& [EnergyUsedWeight, StateDistanceValue] : RelationshipConsumptionAndStateDistance) {
+            if (StateDistanceValue.first > BestState.first) {
+                BestState = StateDistanceValue;
+            }
+        }
+        return BestState; /*Return the best state: including optimal distance and corresponding list of journey steps*/
 
     }
 
-private:
+    /*Create a random list of travel steps*/
     StepBehaviorInput CreateRandomListStep() {
-        StepBehaviorInput ListStepInput;
+        StepBehaviorInput ListStepRandom;
         for(int i = 0; i< ListStepLength; i++) {
             StepBehavior Step;
             Step.Speed = static_cast<float>(rand() % 91 + 30); /* Random speed between 30 and 120 km/h */
@@ -378,11 +392,15 @@ private:
             } else {
                 Step.DrivingMode = "SportMode";
             }
-            ListStepInput.push_back(Step);
+            ListStepRandom.push_back(Step);
         }
-        return ListStepInput;
+        return ListStepRandom;
     }
 
+    /*Get list of travel steps*/
+    StepBehaviorInput GetListStepRandom() const {
+        return ListStepInput;
+    }
 };
     
 
@@ -404,29 +422,32 @@ int main() {
         VF5_CrimsonRed.VF5_Drive(25,60,env); /* Drive 25 km */ 
         std::cout << "-----------------------------------" << std::endl;
     }
-    std::cout << "========================Genetic Algorithm=========================" << std::endl;
-    std::cout << "🚀 Using Genetic Algorithm to find the optimal driving strategy..." << std::endl;
+    std::cout << "========================Dynamic Programming=========================" << std::endl;
+    std::cout << "🚀 Using Dynamic Programming to find the optimal driving strategy..." << std::endl;
     Environment env(TerrainType::Flat,35.0);
     while (VF5_CrimsonRed.VF5_GetRemainingBattery() > (InitialBatteryCapacity * 0.1)) { /* Stop if battery below 10% */
-        GeneticAlgorithm VF5_GA((InitialBatteryCapacity * 0.1), 20, 100, 100); /* battery limit, chromosome length, population size, generations */
-        GeneticAlgorithm::Chromosome VF5_BestStrategy = VF5_GA.SelectionBestIndividual(env, 0.1); /* mutation rate */
+        DynamicProgrammingAlgorithm VF5_DP((InitialBatteryCapacity * 0.1), 40); /* battery limit, list step length */
+        DynamicProgrammingAlgorithm::StateDistance VF5_BestStrategy = VF5_DP.TraceBestState(env, 60); /* time duration for each step */
+        DynamicProgrammingAlgorithm::StepBehaviorInput ListStepDriving = VF5_DP.GetListStepRandom();
+        auto& [maxdistance, stepselected] = VF5_BestStrategy;
         std::cout << "🎉 Optimal Driving Strategy Found:" << std::endl;
-        std::cout << "🏆 Best Fitness Score (Estimated Distance): " << VF5_GA.GetLastBestFitnessScore() << " km" << std::endl;
-        for (const auto& step : VF5_BestStrategy) {
-            std::cout << "Speed: " << step.Speed << " km/h, Mode: " << step.DrivingMode << std::endl;
+        std::cout << "🏆 Best Distance (Estimated Distance): " << maxdistance << " km" << std::endl;
+        std::cout << "List of " << stepselected.size() << " Selected Steps:" << std::endl;
+        for (const auto& stepindex : stepselected) {
+            std::cout << "Speed: " << ListStepDriving[stepindex].Speed << " km/h, Mode: " << ListStepDriving[stepindex].DrivingMode << std::endl;
         }
 
         /* Execute the best strategy until battery is depleted */
         std::cout << "🚗 Executing Optimal Driving Strategy..." << std::endl;
-        for (const auto& step : VF5_BestStrategy) {
+        for (const auto& stepindex : stepselected) {
             std::cout << "------------------New Step--------------------" << std::endl;
-            VF5_CrimsonRed.VF5_SwitchMode(step.DrivingMode);
-            VF5_CrimsonRed.VF5_Drive(step.Speed, 60, env); /* Drive for 1 minute at the given speed and mode */
+            VF5_CrimsonRed.VF5_SwitchMode(ListStepDriving[stepindex].DrivingMode);
+            VF5_CrimsonRed.VF5_Drive(ListStepDriving[stepindex].Speed, 60, env); /* Drive for 1 minute at the given speed and mode */
             std::cout << "------------------End Step--------------------" << std::endl;
         }
         CountStrategy++;
         std::cout << "==================End Strategy " << CountStrategy << " ====================" << std::endl;
     }
-    std::cout << "------------------End Genetic Algorithm--------------------" << std::endl;
+    std::cout << "------------------End Dynamic Programming--------------------" << std::endl;
     return 0;
 }
